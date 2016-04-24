@@ -35,20 +35,24 @@ void verifica_erro(int, const char[]);
 pid_t *pids;
 unsigned int it_pids;
 
-sem_t sem_senador, sem_deputados;
+sem_t sem_senador, sem_deputados, sem_declarar_voto;
 
 char *votos;
-int it_votos;
+unsigned int *it_votos;
 
 int main(){
 	int retorno;
 	unsigned int i;
 	unsigned int qtd_deputados, qtd_senadores, qtd_vereadores, qtd_politicos;
+	unsigned int quantidade[2] = {0,0};
 
 	retorno = sem_init(&sem_senador, 1, 1);
 	verifica_semaforo(retorno);
 
 	retorno = sem_init(&sem_deputados, 1, 5);
+	verifica_semaforo(retorno);
+
+	retorno = sem_init(&sem_declarar_voto, 1, 1);
 	verifica_semaforo(retorno);
 
 	printf("Número de senadores: ");
@@ -64,7 +68,7 @@ int main(){
 	verifica_leitura(retorno);
 
 	qtd_politicos = qtd_senadores + qtd_deputados + qtd_vereadores;
-
+	cria_cabine(qtd_politicos);
 	pids = (pid_t *) calloc(qtd_politicos, sizeof (pid_t));
 	it_pids = 0;
 
@@ -84,6 +88,12 @@ int main(){
 		waitpid(pids[i], &retorno, 0);
 	}
 
+	printf("\nVotação final: \n");
+	for (i = 0; i < *it_votos; ++i){
+		quantidade[(int)votos[i]]++;
+	}	
+		printf("Votos SIM : %d\n", quantidade[SIM]);
+		printf("Votos NAO : %d\n", quantidade[NAO]);
 	return 0;
 }
 
@@ -150,22 +160,26 @@ void entra(int cargo){
 
 void vota(int voto){
 	char resposta[][5] = {"SIM", "NÃO"};
-	
+	sem_wait(&sem_declarar_voto);
 	usleep(50);
-	
-	printf("Eu votei %s!\n", resposta[voto]);
+	votos[(*it_votos)++] = voto;
+	printf("Eu votei %s\n", resposta[voto]);
+	sem_post(&sem_declarar_voto);
 }
 
 void verifica_erro(int valor, const char funcao[]){
      if(valor == -1){
         perror(funcao);
+        exit(1);
     }
 }
 
 void cria_cabine(int n_politicos){
     void * shm_address;
     int shrm_id;
-    int key = ftok("sem_project.c", 0xf5);
+    int key;
+    srand((int)clock());
+    key  = ftok("sem_project.c", rand());
 
     verifica_erro(key, "ftok");
 
@@ -173,6 +187,9 @@ void cria_cabine(int n_politicos){
     verifica_erro(key, "shmget");
     
     shm_address = shmat(shrm_id, NULL, 0);
-    verifica_erro((long long)shm_address, "shmat"); 
+    verifica_erro((long long)shm_address, "shmat");
+   	it_votos = (unsigned int *) shm_address;
+   	*it_votos = 0;
+    votos = (char *)(it_votos+1);
 }
 
