@@ -1,4 +1,5 @@
 #define _BSD_SOURCE
+#define _SVID_SOURCE
 
 #include <stdio.h>
 #include <unistd.h>
@@ -7,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <semaphore.h>
+#include <sys/shm.h>
 
 #define CHILD 0
 
@@ -16,17 +18,27 @@ enum{
 	VEREADOR	
 };
 
+enum{
+    SIM,
+    NAO
+};
+
 void verifica_leitura(int);
 void verifica_semaforo(int);
 void novo_politico(int);
 void medita(void);
 void entra(int);
 void vota(int);
+void cria_cabine(int);
+void verifica_erro(int, const char[]);
 
 pid_t *pids;
 unsigned int it_pids;
 
 sem_t sem_senador, sem_deputados;
+
+char *votos;
+int it_votos;
 
 int main(){
 	int retorno;
@@ -143,3 +155,24 @@ void vota(int voto){
 	
 	printf("Eu votei %s!\n", resposta[voto]);
 }
+
+void verifica_erro(int valor, const char funcao[]){
+     if(valor == -1){
+        perror(funcao);
+    }
+}
+
+void cria_cabine(int n_politicos){
+    void * shm_address;
+    int shrm_id;
+    int key = ftok("sem_project.c", 0xf5);
+
+    verifica_erro(key, "ftok");
+
+    shrm_id = shmget(key, n_politicos + sizeof(int), 0666 | IPC_CREAT);
+    verifica_erro(key, "shmget");
+    
+    shm_address = shmat(shrm_id, NULL, 0);
+    verifica_erro((long long)shm_address, "shmat"); 
+}
+
