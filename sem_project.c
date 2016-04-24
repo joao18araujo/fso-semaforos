@@ -8,8 +8,6 @@
 #include <sys/wait.h>
 #include <semaphore.h>
 
-#define debug(x) printf("#x = %d\n", x);
-
 #define CHILD 0
 
 enum{

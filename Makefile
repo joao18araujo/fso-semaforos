@@ -5,3 +5,6 @@ all:
 
 run:
 	./sem_project
+
+clean:
+	rm sem_project
