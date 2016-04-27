@@ -94,6 +94,13 @@ int main(){
 	}	
 		printf("Votos SIM : %d\n", quantidade[SIM]);
 		printf("Votos NAO : %d\n", quantidade[NAO]);
+
+	sem_destroy(&sem_senador);
+	sem_destroy(&sem_deputados);
+	sem_destroy(&sem_declarar_voto);
+
+	shmdt(it_votos);
+
 	return 0;
 }
 
